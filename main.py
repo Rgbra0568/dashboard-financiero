@@ -44,7 +44,7 @@ else:
         # Eliminamos cualquier fila vacía para que Plotly no falle
         precios = precios.dropna()
 
-        # 3. DISEÑO EN COLUMNAS CORREGIDO (Le indicamos explícitamente 2 columnas de igual ancho)
+        # 3. Diseño en dos columnas estéticas
         col1, col2 = st.columns(2)
         
         with col1:
@@ -53,14 +53,20 @@ else:
             
         with col2:
             st.subheader("📉 Evolución de Inversión de $1000 USD")
-            # Calculamos la inversión basándonos en la primera fila válida
             inversion = precios / precios.iloc[0] * 1000
 
+            # Creación del gráfico con el modo oscuro real forzado
             fig = px.line(
                 inversion, 
                 title=f"Rendimiento simulado de $1000 USD (Periodo: {periodo})",
                 labels={"value": "Valor de la inversión ($)", "Date": "Fecha", "variable": "Empresa"},
                 template="plotly_dark"
+            )
+            
+            fig.update_layout(
+                paper_bgcolor="#111111",
+                plot_bgcolor="#111111",
+                font_color="#F2F5FA"
             )
             st.plotly_chart(fig, use_container_width=True)
 
@@ -70,12 +76,13 @@ else:
     # Estructura visual para separar el módulo de IA
     st.markdown("---")
 
-    # 4. BOTÓN Y PROMPT DE REPORTE CON IA CON EL NUEVO MODELO GEMINI-3.6-FLASH
+    # 4. BOTÓN Y PROMPT DE REPORTE CON IA CON ACCESO SEGURO A SECRETS
     st.subheader("🤖 Análisis de Portafolio con IA Experta")
     
     try:
-        MI_CLAVE_FINANCIERA = "AQ.Ab8RN6K1WqABNm-z0hx_dtIh2gS1L68N9NXGCt_lHLmuhLTGlQ"
-        cliente = gemini.Client(api_key=MI_CLAVE_FINANCIERA) 
+        # CONEXIÓN SEGURA: Leemos la clave desde la configuración de la nube de Streamlit
+        api_key_segura = st.secrets.get("GEMINI_API_KEY")
+        cliente = gemini.Client(api_key=api_key_segura) 
         
         prompt = f"""
         Actúa como un analista financiero experto certificado. Haz un análisis profundo del rendimiento de las acciones del portafolio actual: {', '.join(lista_tickers)} durante el periodo seleccionado de {periodo}. 
@@ -88,7 +95,6 @@ else:
         
         if st.button("🚀 Generar Reporte Financiero de este Portafolio"):
             with st.spinner("Gemini está analizando las cotizaciones en tiempo real y redactando el informe..."):
-                # ACTUALIZADO: Cambiado a gemini-3.6-flash para cumplir con los nuevos requerimientos de Google
                 respuesta = cliente.models.generate_content(
                     model="gemini-3.6-flash",
                     contents=prompt

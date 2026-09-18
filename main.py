@@ -74,7 +74,9 @@ else:
     st.subheader("🤖 Análisis de Portafolio con IA Experta")
     
     try:
-        cliente = gemini.Client() 
+        # Forzamos al cliente a usar el Secret de Streamlit, o las variables estándar
+        api_key_segura = st.secrets.get("GEMINI_API_KEY") or st.secrets.get("GOOGLE_API_KEY")
+        cliente = gemini.Client(api_key=api_key_segura) 
         
         prompt = f"""
         Actúa como un analista financiero experto certificado. Haz un análisis profundo del rendimiento de las acciones del portafolio actual: {', '.join(lista_tickers)} durante el periodo seleccionado de {periodo}. 

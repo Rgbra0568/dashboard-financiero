@@ -39,13 +39,13 @@ else:
         
         # Si es un solo ticker, yfinance devuelve una Serie. La convertimos a DataFrame.
         if len(lista_tickers) == 1:
-            precios = precios.to_frame(name=lista_tickers[0])
+            precios = precios.to_frame(name=lista_tickers)
 
         # Eliminamos cualquier fila vacía para que Plotly no falle
         precios = precios.dropna()
 
         # 3. Diseño en dos columnas estéticas
-        col1, col2 = st.columns([1, 2])  # La columna del gráfico es el doble de ancha
+        col1, col2 = st.columns()
         
         with col1:
             st.subheader("📈 Últimos Precios de Cierre")
@@ -70,13 +70,13 @@ else:
     # Estructura visual para separar el módulo de IA
     st.markdown("---")
 
-    # 4. BOTÓN Y PROMPT DE REPORTE CON IA (Fuera del bloque de gráficos para que aparezca SIEMPRE)
+    # 4. BOTÓN Y PROMPT DE REPORTE CON IA CON CLAVE DIRECTA
     st.subheader("🤖 Análisis de Portafolio con IA Experta")
     
     try:
-        # Forzamos al cliente a usar el Secret de Streamlit, o las variables estándar
-        api_key_segura = st.secrets.get("GEMINI_API_KEY") or st.secrets.get("GOOGLE_API_KEY")
-        cliente = gemini.Client(api_key=api_key_segura) 
+        # Colocamos tu clave directamente en el constructor del cliente para máxima compatibilidad
+        MI_CLAVE_FINANCIERA = "AQ.Ab8RN6K1WqABNm-z0hx_dtIh2gS1L68N9NXGCt_lHLmuhLTGlQ"
+        cliente = gemini.Client(api_key=MI_CLAVE_FINANCIERA) 
         
         prompt = f"""
         Actúa como un analista financiero experto certificado. Haz un análisis profundo del rendimiento de las acciones del portafolio actual: {', '.join(lista_tickers)} durante el periodo seleccionado de {periodo}. 
@@ -96,4 +96,4 @@ else:
                 st.markdown(respuesta.text)
 
     except Exception as e:
-        st.error("Error de configuración de la IA. Verifica tu GEMINI_API_KEY en los Secrets de Streamlit.")
+        st.error(f"Ocurrió un inconveniente con el motor de Inteligencia Artificial: {e}")

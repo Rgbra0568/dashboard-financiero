@@ -1,28 +1,97 @@
 import streamlit as st
 import yfinance as yf
 import plotly.express as px
+from google import genai as gemini
 
-# Configuración del título de la página web
-st.set_page_config(page_title="Dashboard Financiero", layout="wide")
-st.title("📊 Análisis de Acciones: AAPL, MSFT, NVDA")
+# 1. Configuración de la interfaz web
+st.set_page_config(page_title="Dashboard IA Financiera", layout="wide")
 
-# Descarga de datos (Tu lógica original)
-tikers = "AAPL", "NVDA", "MSFT"
-datos = yf.download(tikers, period="1y")
-precios = datos["Close"]
+# Barra lateral para el control del usuario
+st.sidebar.header("⚙️ Configuración del Dashboard")
 
-# Mostrar la tabla de datos de forma interactiva en la web
-st.subheader("📈 Últimos Precios de Cierre")
-st.dataframe(precios.tail())
+# Selector de empresas dinámico
+lista_tickers = st.sidebar.multiselect(
+    "Selecciona las Empresas a analizar:",
+    options=["AAPL", "MSFT", "NVDA", "TSLA", "MELI", "GOOGL", "AMZN", "META"],
+    default=["AAPL", "MSFT", "NVDA"]
+)
 
-# Gráfico interactivo de Plotly (Tu lógica original)
-st.subheader("📉 Evolución de una Inversión de $1000 USD")
-inversion = precios / precios.values[0] * 1000
+# Selector de periodo de tiempo
+periodo = st.sidebar.selectbox(
+    "Periodo de tiempo de los datos:",
+    options=["3m", "6m", "1y", "2y", "5y"],
+    index=2  # Por defecto selecciona '1y' (1 año)
+)
 
-fig = px.line(inversion, 
-              title="Si invertís $1000, ¿Cuánto tendrías hoy?",
-              labels={"value": "Valor de $1000", "Date": "Fecha", "variable": "Empresa"},
-              template="plotly_dark")
+st.title("📊 Dashboard Financiero con Inteligencia Artificial")
+st.markdown("Analiza la cotización de tus activos favoritos en tiempo real y genera reportes automáticos con IA.")
 
-# Esto renderiza el gráfico directamente en la página web
-st.plotly_chart(fig, use_container_width=True)
+# Control de error: si no hay empresas seleccionadas
+if not lista_tickers:
+    st.warning("⚠️ Por favor, selecciona al menos una empresa en la barra lateral para ver los gráficos.")
+else:
+    try:
+        # 2. Descarga de datos limpia y forzada a DataFrame
+        datos = yf.download(lista_tickers, period=periodo, group_by='ticker')
+        
+        # Estructuramos los precios de cierre de forma limpia para evitar errores de Pandas
+        precios = yf.download(lista_tickers, period=periodo)["Close"]
+        
+        # Si es un solo ticker, yfinance devuelve una Serie. La convertimos a DataFrame.
+        if len(lista_tickers) == 1:
+            precios = precios.to_frame(name=lista_tickers[0])
+
+        # Eliminamos cualquier fila vacía para que Plotly no falle
+        precios = precios.dropna()
+
+        # 3. Diseño en dos columnas estéticas
+        col1, col2 = st.columns([1, 2])  # La columna del gráfico es el doble de ancha
+        
+        with col1:
+            st.subheader("📈 Últimos Precios de Cierre")
+            st.dataframe(precios.tail(10), use_container_width=True)
+            
+        with col2:
+            st.subheader("📉 Evolución de Inversión de $1000 USD")
+            # Calculamos la inversión basándonos en la primera fila válida
+            inversion = precios / precios.iloc[0] * 1000
+
+            fig = px.line(
+                inversion, 
+                title=f"Rendimiento simulado de $1000 USD (Periodo: {periodo})",
+                labels={"value": "Valor de la inversión ($)", "Date": "Fecha", "variable": "Empresa"},
+                template="plotly_dark"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+    except Exception as e:
+        st.error(f"Hubo un problema al cargar los gráficos financieros: {e}")
+
+    # Estructura visual para separar el módulo de IA
+    st.markdown("---")
+
+    # 4. BOTÓN Y PROMPT DE REPORTE CON IA (Fuera del bloque de gráficos para que aparezca SIEMPRE)
+    st.subheader("🤖 Análisis de Portafolio con IA Experta")
+    
+    try:
+        cliente = gemini.Client() 
+        
+        prompt = f"""
+        Actúa como un analista financiero experto certificado. Haz un análisis profundo del rendimiento de las acciones del portafolio actual: {', '.join(lista_tickers)} durante el periodo seleccionado de {periodo}. 
+        Considera los eventos macroeconómicos, lanzamientos tecnológicos y noticias del mercado que justifiquen las alzas y bajas de cada una.
+        Utiliza formato Markdown limpio con títulos legibles, negritas y viñetas para que sea estético.
+        
+        Datos de precios de los últimos días para tu análisis:
+        {precios.tail(5).to_string() if 'precios' in locals() else 'Datos no disponibles'}
+        """
+        
+        if st.button("🚀 Generar Reporte Financiero de este Portafolio"):
+            with st.spinner("Gemini está analizando las cotizaciones en tiempo real y redactando el informe..."):
+                respuesta = cliente.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt
+                )
+                st.markdown(respuesta.text)
+
+    except Exception as e:
+        st.error("Error de configuración de la IA. Verifica tu GEMINI_API_KEY en los Secrets de Streamlit.")

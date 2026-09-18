@@ -44,8 +44,8 @@ else:
         # Eliminamos cualquier fila vacía para que Plotly no falle
         precios = precios.dropna()
 
-        # 3. Diseño en dos columnas estéticas
-        col1, col2 = st.columns()
+        # 3. DISEÑO EN COLUMNAS CORREGIDO (Le indicamos explícitamente 2 columnas de igual ancho)
+        col1, col2 = st.columns(2)
         
         with col1:
             st.subheader("📈 Últimos Precios de Cierre")
@@ -70,11 +70,10 @@ else:
     # Estructura visual para separar el módulo de IA
     st.markdown("---")
 
-    # 4. BOTÓN Y PROMPT DE REPORTE CON IA CON CLAVE DIRECTA
+    # 4. BOTÓN Y PROMPT DE REPORTE CON IA CON EL NUEVO MODELO GEMINI-3.6-FLASH
     st.subheader("🤖 Análisis de Portafolio con IA Experta")
     
     try:
-        # Colocamos tu clave directamente en el constructor del cliente para máxima compatibilidad
         MI_CLAVE_FINANCIERA = "AQ.Ab8RN6K1WqABNm-z0hx_dtIh2gS1L68N9NXGCt_lHLmuhLTGlQ"
         cliente = gemini.Client(api_key=MI_CLAVE_FINANCIERA) 
         
@@ -89,8 +88,9 @@ else:
         
         if st.button("🚀 Generar Reporte Financiero de este Portafolio"):
             with st.spinner("Gemini está analizando las cotizaciones en tiempo real y redactando el informe..."):
+                # ACTUALIZADO: Cambiado a gemini-3.6-flash para cumplir con los nuevos requerimientos de Google
                 respuesta = cliente.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-3.6-flash",
                     contents=prompt
                 )
                 st.markdown(respuesta.text)
